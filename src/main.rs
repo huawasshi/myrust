@@ -1,6 +1,6 @@
-pub mod AllTypes;
 
 use std::ffi::c_int;
+use std::thread;
 
 ///cargo new <project-name>：创建一个新的 Rust 项目。
 ///cargo build：编译当前项目。
@@ -36,7 +36,7 @@ fn main() {
 
     let user1 = User {
         username: String::from("someusername"),
-        email: String::from("someone@example.com"),
+        email: String::from("someone@examples.com"),
         sign_in_count: 1,
         active: true,
     };
@@ -154,7 +154,122 @@ fn main() {
     while let Some(num) = counter.next() {
         println!("{}", num);  // 输出 1 到 5
     }
+
+    // 闭包：省略类型注解，编译器自动推断
+    let add_one = |x| x + 1;
+    println!("add_one(4) = {}", add_one(4)); // 输出: 5
+
+    // 闭包：显式标注参数和返回值类型
+    let multiply = |a: i32, b: i32| -> i32 { a * b };
+    println!("multiply(3, 7) = {}", multiply(3, 7)); // 输出: 21
+
+    // 多行闭包需要加大括号
+    let greet = |name: &str| {
+        let greeting = format!("Hello, {}!", name);
+        greeting
+    };
+    println!("{}", greet("runoob")); // 输出: Hello, runoob!
+
+    let text = String::from("runoob");
+    // 闭包按引用捕获 text，不获取所有权
+    let print_text = | x | println!("text = {}", * &text);
+    print_text(1); // 输出: text = runoob
+    // 借用已结束，外部仍然可以使用 text
+    println!("外部仍可使用: {}", text);
+
+    let mut counter = 0;
+    // 闭包以 &mut 方式捕获 counter，闭包本身也要声明为 mut
+    let mut inc = || {
+        counter += 1;
+    };
+    inc();
+    inc();
+    println!("counter = {}", counter); // 输出: counter = 2
+
+    let mut a = "1".to_string();
+    a = a + &"2".to_string();
+    a = a + "3";
+    a.push_str("4");
+    let b = "11".to_string();
+    {let a1 = &mut a;
+    a1.push_str("5");
+    println!("a1 = {}", a1);
+        let slice = a1.get(1..3);      // 切片，得到 "23" (类型是 &str)
+        println!("slice = {:?}", slice.unwrap_or_else(|| ""));
+        let slice = &a1[1..3];      // 切片，得到 "23" (类型是 &str)
+        println!("slice = {:?}", slice);
+        for c in a1.chars() {       // 按字符迭代
+            println!("{}", c);
+        }
+    }
+    println!("a = {}", a);
+
+    let owned = String::from("RUNOOB");
+    // move 将 owned 的所有权转移进闭包
+    let take_owned = move || println!("owned = {}", owned);
+    take_owned(); // 输出: owned = RUNOOB
+    // 若取消下面这行注释，将编译报错：owned 的所有权已被移入闭包
+    // println!("{}", owned);
+
+    // FnOnce 闭包：消耗捕获的变量，只能调用一次
+    let data = String::from("RUNOOB");
+    let consume = move || {
+        let _ = data; // 将 data 移出闭包环境，消耗了它
+        println!("data has been consumed");
+    };
+    println!("data: {}", data);
+    consume();
+    println!("data: {}", data);
+    consume(); // 若取消注释，编译报错：FnOnce 闭包只能调用一次
+    println!("data: {}", data);
+
+    let double = |x: i32| x.pow(2) * 2;
+    let result = apply(5, double);
+    println!("Result: {}", result); // 输出: Result: 10
+
+    // 也可以直接传入匿名闭包
+    let result2 = apply(3, |x| x + 100);
+    println!("Result2: {}", result2); // 输出: Result2: 103
+
+    let x = 5;
+    let y = 3;
+    let add_five = make_adder(x);
+    println!("5 + 3 = {}", add_five(y)); // 输出: 5 + 3 = 8
+    println!("x : {}", x);
+    println!("y : {}", y);
+
+    let add_ten = make_adder(10);
+    println!("10 + 2 = {}", add_ten(2)); // 输出: 10 + 2 = 12
+
+    let nums = vec![1, 2, 3, 4, 5];
+
+    // 为每个数字创建一个线程，move 将 num 的所有权移入线程
+    let handles: Vec<_> = nums.into_iter().map(|num| {
+        thread::spawn(move || {
+            num * 2
+        })
+    }).collect();
+
+    // 等待所有线程完成并收集结果
+    for handle in handles {
+        let result = handle.join().unwrap();
+        println!("Result: {}", result);
+    }
 }
+
+fn apply<F>(val: i32, f: F) -> i32
+where
+    F: Fn(i32) -> i32, // F 必须实现 Fn(i32) -> i32
+{
+    f(val)
+}
+
+// 返回一个闭包，捕获参数 x 并与传入值相加
+fn make_adder(x: i32) -> impl Fn(i32) -> i32 {
+    // 必须 move，否则 x 是局部引用，闭包返回后 x 已失效
+    move |y| x + y
+}
+
 struct Counter {
     count: usize,
 }
