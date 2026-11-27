@@ -255,6 +255,20 @@ fn main() {
         let result = handle.join().unwrap();
         println!("Result: {}", result);
     }
+
+    let s = String::from("broadcast");
+
+    let part1 = s[0..5].to_string();
+    let part2 = &s[5..9];
+
+    println!("{}={}+{}", s, part1, part2);
+
+    let mut s = String::from("runoob");
+    s.push_str("yes");
+    s.push('!');
+    let slice = &s[0..3];
+    // s.push_str("yes!"); // 错误
+    println!("slice = {}", slice);
 }
 
 fn apply<F>(val: i32, f: F) -> i32
